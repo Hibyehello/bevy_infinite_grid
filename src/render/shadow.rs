@@ -4,9 +4,12 @@ use bevy::{
         system::{
             lifetimeless::{Read, SRes},
             SystemParamItem,
-        }
+        },
     },
-    pbr::{DrawMesh, MAX_CASCADES_PER_LIGHT, MAX_DIRECTIONAL_LIGHTS, MeshPipeline, MeshPipelineKey, NotShadowCaster, SetMeshBindGroup},
+    pbr::{
+        DrawMesh, MeshPipeline, MeshPipelineKey, NotShadowCaster, SetMeshBindGroup,
+        MAX_CASCADES_PER_LIGHT, MAX_DIRECTIONAL_LIGHTS,
+    },
     prelude::*,
     reflect::TypeUuid,
     render::{
@@ -16,8 +19,7 @@ use bevy::{
         render_graph::{Node, RenderGraph},
         render_phase::{
             AddRenderCommand, CachedRenderPipelinePhaseItem, DrawFunctionId, DrawFunctions,
-            PhaseItem, RenderCommand, RenderCommandResult, RenderPhase,
-            SetItemPipeline,
+            PhaseItem, RenderCommand, RenderCommandResult, RenderPhase, SetItemPipeline,
         },
         render_resource::{
             AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
@@ -26,9 +28,9 @@ use bevy::{
             Extent3d, FilterMode, FragmentState, FrontFace, LoadOp, MultisampleState, Operations,
             PipelineCache, PolygonMode, PrimitiveState, RenderPassColorAttachment,
             RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerDescriptor,
-            ShaderDefVal, ShaderStages, ShaderType, SpecializedMeshPipeline, SpecializedMeshPipelineError,
-            SpecializedMeshPipelines, TextureDescriptor, TextureDimension, TextureFormat,
-            TextureUsages, TextureView, VertexState,
+            ShaderDefVal, ShaderStages, ShaderType, SpecializedMeshPipeline,
+            SpecializedMeshPipelineError, SpecializedMeshPipelines, TextureDescriptor,
+            TextureDimension, TextureFormat, TextureUsages, TextureView, VertexState,
         },
         renderer::RenderDevice,
         texture::TextureCache,
@@ -115,11 +117,11 @@ impl FromWorld for GridShadowPipeline {
         });
 
         let mesh_pipeline = world.get_resource::<MeshPipeline>().unwrap();
-        let skinned_mesh_layout = mesh_pipeline.skinned_mesh_layout.clone();
+        let skinned_mesh_layout = mesh_pipeline.view_layout.clone();
 
         GridShadowPipeline {
             view_layout,
-            mesh_layout: mesh_pipeline.mesh_layout.clone(),
+            mesh_layout: mesh_pipeline.view_layout.clone(),
             skinned_mesh_layout,
             sampler: render_device.create_sampler(&SamplerDescriptor {
                 address_mode_u: AddressMode::ClampToEdge,
@@ -154,7 +156,7 @@ impl SpecializedMeshPipeline for GridShadowPipeline {
             ShaderDefVal::Int(
                 "MAX_CASCADES_PER_LIGHT".to_string(),
                 MAX_CASCADES_PER_LIGHT as i32,
-            )
+            ),
         ];
 
         if layout.contains(Mesh::ATTRIBUTE_JOINT_INDEX)
@@ -287,7 +289,7 @@ fn prepare_grid_shadow_views(
                 dimension: TextureDimension::D2,
                 format: TextureFormat::R8Unorm,
                 usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
-                view_formats: &[]
+                view_formats: &[],
             },
         );
 
@@ -297,7 +299,7 @@ fn prepare_grid_shadow_views(
                 frustum_intersect.width / -2.,
                 frustum_intersect.height / -2.,
                 frustum_intersect.width / 2.,
-                frustum_intersect.height / 2.
+                frustum_intersect.height / 2.,
             ),
             ..Default::default()
         };
@@ -313,7 +315,7 @@ fn prepare_grid_shadow_views(
                 view_projection: None,
                 hdr: false,
                 viewport: UVec4::new(0, 0, width, height),
-                color_grading: Default::default()
+                color_grading: Default::default(),
             },
             GridShadowView {
                 texture_view: texture.default_view.clone(),
@@ -494,8 +496,7 @@ impl Node for GridShadowPassNode {
             };
 
             let draw_functions = world.resource::<DrawFunctions<GridShadow>>();
-            let mut tracked_render_pass = render_context
-                .begin_tracked_render_pass(pass_descriptor);
+            let mut tracked_render_pass = render_context.begin_tracked_render_pass(pass_descriptor);
             let mut draw_functions = draw_functions.write();
             for item in &render_phase.items {
                 let draw_function = draw_functions.get_mut(item.draw_function).unwrap();
@@ -521,9 +522,10 @@ impl Default for RenderSettings {
 }
 
 pub fn register_shadow(app: &mut App) {
-    app.world
-        .resource_mut::<Assets<Shader>>()
-        .set_untracked(SHADOW_SHADER_HANDLE, Shader::from_wgsl(SHADOW_RENDER));
+    app.world.resource_mut::<Assets<Shader>>().set_untracked(
+        SHADOW_SHADER_HANDLE,
+        Shader::from_wgsl(SHADOW_RENDER, "shadow_render.wgsl"),
+    );
 
     let render_settings = app
         .world
@@ -553,9 +555,8 @@ pub fn register_shadow(app: &mut App) {
         .get_sub_graph_mut(bevy::core_pipeline::core_3d::graph::NAME)
         .unwrap();
     draw_3d_graph.add_node(GridShadowPassNode::NAME, grid_shadow_pass_node);
-    draw_3d_graph
-        .add_node_edge(
-            GridShadowPassNode::NAME,
-            bevy::core_pipeline::core_3d::graph::node::MAIN_PASS,
-        );
+    draw_3d_graph.add_node_edge(
+        GridShadowPassNode::NAME,
+        bevy::core_pipeline::core_3d::graph::node::START_MAIN_PASS,
+    );
 }
