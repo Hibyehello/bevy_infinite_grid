@@ -7,7 +7,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(InfiniteGridPlugin)
         .add_plugin(NoCameraPlayerPlugin)
-        .add_startup_system(setup_system)
+        .add_systems(Startup, setup_system)
         .run();
 }
 

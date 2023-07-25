@@ -597,17 +597,24 @@ pub fn render_app_builder(app: &mut App) {
         .init_resource::<InfiniteGridPipeline>()
         .init_resource::<SpecializedRenderPipelines<InfiniteGridPipeline>>()
         .add_render_command::<Transparent3d, DrawInfiniteGrid>()
-        .add_system(extract_infinite_grids.in_schedule(ExtractSchedule))
-        .add_system(
-            extract_grid_shadows
-                .in_schedule(ExtractSchedule)
-                .before(extract_infinite_grids), // order to minimize move overhead
+        .add_systems(ExtractSchedule, extract_infinite_grids)
+        .add_systems(
+            Update,
+            extract_grid_shadows.before(extract_infinite_grids), // order to minimize move overhead
         )
-        .add_system(prepare_infinite_grids.in_set(RenderSet::Prepare))
-        .add_system(prepare_grid_shadows.in_set(RenderSet::Prepare))
-        .add_system(prepare_grid_view_bind_groups.in_set(RenderSet::Prepare))
-        .add_system(queue_infinite_grids.in_set(RenderSet::Queue))
-        .add_system(queue_grid_view_bind_groups.in_set(RenderSet::Queue));
+        .add_systems(
+            Update,
+            (
+                prepare_infinite_grids,
+                prepare_grid_shadows,
+                prepare_grid_view_bind_groups,
+            )
+                .in_set(RenderSet::Prepare),
+        )
+        .add_systems(
+            Update,
+            (queue_infinite_grids, queue_grid_view_bind_groups).in_set(RenderSet::Queue),
+        );
 
     shadow::register_shadow(app);
 }

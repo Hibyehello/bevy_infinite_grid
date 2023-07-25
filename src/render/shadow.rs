@@ -541,13 +541,20 @@ pub fn register_shadow(app: &mut App) {
         .init_resource::<SpecializedMeshPipelines<GridShadowPipeline>>()
         .insert_resource(render_settings)
         .add_render_command::<GridShadow, DrawGridShadowMesh>()
-        .add_system(
+        .add_systems(
             // Register as exclusive system because ordering against `bevy_render::view::prepare_view_uniforms` isn't possible otherwise.
+            Update,
             prepare_grid_shadow_views.in_set(RenderSet::Prepare),
         )
-        .add_system(queue_grid_shadows.in_set(RenderSet::Queue))
-        .add_system(queue_grid_shadow_bind_groups.in_set(RenderSet::Queue))
-        .add_system(queue_grid_shadow_view_bind_group.in_set(RenderSet::Queue));
+        .add_systems(
+            Update,
+            (
+                queue_grid_shadows,
+                queue_grid_shadow_bind_groups,
+                queue_grid_shadow_view_bind_group,
+            )
+                .in_set(RenderSet::Queue),
+        );
 
     let grid_shadow_pass_node = GridShadowPassNode::new(&mut render_app.world);
     let mut graph = render_app.world.resource_mut::<RenderGraph>();
@@ -557,6 +564,6 @@ pub fn register_shadow(app: &mut App) {
     draw_3d_graph.add_node(GridShadowPassNode::NAME, grid_shadow_pass_node);
     draw_3d_graph.add_node_edge(
         GridShadowPassNode::NAME,
-        bevy::core_pipeline::core_3d::graph::node::START_MAIN_PASS,
+        bevy::core_pipeline::core_3d::graph::node::MAIN_TRANSPARENT_PASS,
     );
 }
