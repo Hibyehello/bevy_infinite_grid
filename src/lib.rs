@@ -21,7 +21,6 @@ impl Plugin for InfiniteGridPlugin {
             ),
         );
     }
-
     fn finish(&self, _app: &mut App) {
         render::render_app_builder(_app);
     }

@@ -38,7 +38,7 @@ use bevy::{
             ExtractedView, ExtractedWindows, ViewUniform, ViewUniformOffset, ViewUniforms,
             VisibleEntities,
         },
-        RenderApp, RenderSet,
+        Render, RenderApp, RenderSet,
     },
     utils::FloatOrd,
 };
@@ -117,11 +117,11 @@ impl FromWorld for GridShadowPipeline {
         });
 
         let mesh_pipeline = world.get_resource::<MeshPipeline>().unwrap();
-        let skinned_mesh_layout = mesh_pipeline.view_layout.clone();
+        let skinned_mesh_layout = mesh_pipeline.mesh_layouts.skinned.clone();
 
         GridShadowPipeline {
             view_layout,
-            mesh_layout: mesh_pipeline.view_layout.clone(),
+            mesh_layout: mesh_pipeline.mesh_layouts.model_only.clone(),
             skinned_mesh_layout,
             sampler: render_device.create_sampler(&SamplerDescriptor {
                 address_mode_u: AddressMode::ClampToEdge,
@@ -524,7 +524,7 @@ impl Default for RenderSettings {
 pub fn register_shadow(app: &mut App) {
     app.world.resource_mut::<Assets<Shader>>().set_untracked(
         SHADOW_SHADER_HANDLE,
-        Shader::from_wgsl(SHADOW_RENDER, "shadow_render.wgsl"),
+        Shader::from_wgsl(SHADOW_RENDER, SHADOW_RENDER),
     );
 
     let render_settings = app
@@ -547,7 +547,7 @@ pub fn register_shadow(app: &mut App) {
             prepare_grid_shadow_views.in_set(RenderSet::Prepare),
         )
         .add_systems(
-            Update,
+            Render,
             (
                 queue_grid_shadows,
                 queue_grid_shadow_bind_groups,
