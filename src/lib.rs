@@ -13,6 +13,10 @@ pub struct InfiniteGridPlugin;
 impl Plugin for InfiniteGridPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InfiniteGridSettings>();
+    }
+
+    fn finish(&self, app: &mut App) {
+        render::render_app_builder(app);
         app.add_systems(
             PostUpdate,
             (
@@ -20,9 +24,6 @@ impl Plugin for InfiniteGridPlugin {
                 track_caster_visibility.after(VisibilitySystems::CheckVisibility),
             ),
         );
-    }
-    fn finish(&self, _app: &mut App) {
-        render::render_app_builder(_app);
     }
 }
 
